@@ -348,6 +348,10 @@ fi
 CT_IP="$(pct exec "$VMID" -- hostname -I 2>/dev/null | awk '{print $1}' || true)"
 [[ -n "$CT_IP" ]] || CT_IP="<IP unbekannt>"
 
+# Der GitHub-Schluessel wird hier NOCH EINMAL ausgegeben statt auf "siehe
+# oben" zu verweisen: im Ausgabestrom des Provisionings wurde er uebersehen.
+GITHUB_KEY_ANZEIGE="$(pct exec "$VMID" -- su - "$CT_USER" -s /bin/bash -c 'cat "$HOME/.ssh/id_ed25519.pub"' 2>/dev/null || true)"
+
 msg "Fertig"
 cat <<ENDE
 
@@ -373,8 +377,11 @@ cat <<ENDE
      installieren - in der Erweiterungsansicht der Knopf
      "Install in SSH: $CT_HOSTNAME".
 
-  Der GitHub-Schluessel des Containers wurde oben ausgegeben - eintragen
-  unter Settings → SSH and GPG keys, danach laesst sich klonen.
+  3) GitHub-Schluessel des Containers eintragen
+     (github.com → Settings → SSH and GPG keys → New SSH key),
+     danach laesst sich klonen:
+
+     ${GITHUB_KEY_ANZEIGE:-<liess sich nicht auslesen - im Container: cat ~/.ssh/id_ed25519.pub>}
 
   Der Snapshot 'grundinstallation' ist gesetzt (siehe oben). Vor
   riskanten Experimenten einen weiteren anlegen:

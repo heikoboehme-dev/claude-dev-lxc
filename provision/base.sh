@@ -213,12 +213,6 @@ OFFEN+=("Claude Code anmelden: 'claude' starten, angezeigte URL im Browser oeffn
 
 # --------------------------------------------------------------- Abschluss ---
 msg "Grundsystem fertig"
-printf '\n  Offen bleibt:\n\n'
-n=1
-for punkt in ${OFFEN[@]+"${OFFEN[@]}"}; do
-  printf '  %d) %s\n\n' "$n" "$punkt"
-  n=$((n + 1))
-done
 
 # Liegt ein Schluessel, ist der Weg vom Arbeitsplatz frei - dann gleich die
 # fertigen Eintraege mitgeben, statt sie den Leser zusammensuchen zu lassen.
@@ -268,3 +262,13 @@ if [[ -s "$HEIM/.ssh/authorized_keys" ]]; then
 
 VERBINDUNG
 fi
+
+# Die offenen Punkte kommen als LETZTES auf den Schirm - insbesondere der
+# GitHub-Schluessel stand frueher davor und scrollte hinter den langen
+# Verbindungshinweisen aus dem Blickfeld; genau so wurde er einmal uebersehen.
+printf '\n  Offen bleibt - der Reihe nach:\n\n'
+n=1
+for punkt in ${OFFEN[@]+"${OFFEN[@]}"}; do
+  printf '  %d) %s\n\n' "$n" "$punkt"
+  n=$((n + 1))
+done
