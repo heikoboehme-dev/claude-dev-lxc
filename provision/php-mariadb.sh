@@ -37,11 +37,24 @@ info "PHP $(php -r 'echo PHP_VERSION;')"
 
 # Diese sechs braucht praktisch jede PHP-Anwendung; fehlt eine, ist die
 # Maschine unbrauchbar und das soll hier auffallen, nicht spaeter im Projekt.
-FEHLEND=""
-for ext in pdo_mysql fileinfo mbstring openssl curl json; do
-  php -m | grep -qix "$ext" || FEHLEND="$FEHLEND $ext"
+#
+# Mit Wiederholung: direkt nach dem apt-Lauf legen die dpkg-Trigger die
+# Modul-Verknuepfungen unter conf.d/ noch um. Trifft die Pruefung dieses
+# Fenster, meldet 'php -m' eine gerade angefasste Erweiterung kurz als fehlend
+# - beobachtet, mit je wechselnder Erweiterung. Deshalb bis zu fuenfmal mit
+# einer Sekunde Pause, bevor der Abbruch als echter Befund gilt. 'php -m' wird
+# je Versuch nur einmal aufgerufen und das Ergebnis durchsucht.
+NOETIG="pdo_mysql fileinfo mbstring openssl curl json"
+for versuch in 1 2 3 4 5; do
+  GELADEN="$(php -m 2>/dev/null)"
+  FEHLEND=""
+  for ext in $NOETIG; do
+    grep -qix "$ext" <<<"$GELADEN" || FEHLEND="$FEHLEND $ext"
+  done
+  [[ -z "$FEHLEND" ]] && break
+  [[ $versuch -lt 5 ]] && sleep 1
 done
-[[ -z "$FEHLEND" ]] || die "PHP-Erweiterungen fehlen:$FEHLEND"
+[[ -z "$FEHLEND" ]] || die "PHP-Erweiterungen fehlen dauerhaft:$FEHLEND"
 info "alle ueblichen PHP-Erweiterungen vorhanden"
 
 cat <<ENDE
