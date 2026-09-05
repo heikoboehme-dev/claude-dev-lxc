@@ -92,6 +92,35 @@ else
   OFFEN+=("SSH pruefen: systemctl status ssh")
 fi
 
+# Fehlt noch ein Schluessel und sitzt jemand an der Konsole, wird er hier
+# durchgefuehrt statt vertroestet: Schluessel einfuegen, das Skript prueft,
+# schreibt und haertet direkt im Anschluss. Der Node-Weg (pct create) fuellt
+# authorized_keys automatisch, dann erscheint diese Abfrage gar nicht.
+if [[ ! -s "$HEIM/.ssh/authorized_keys" && -t 0 && "${NONINTERACTIVE:-0}" != "1" ]]; then
+  msg "SSH-Schluessel hinterlegen"
+  info "Auf dem Arbeitsplatz in einem zweiten Terminal anzeigen und kopieren:"
+  info "    cat ~/.ssh/id_ed25519.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub"
+  info "Die ausgegebene Zeile hier einfuegen. Leere Eingabe ueberspringt den Schritt."
+  while true; do
+    printf '\n'
+    ZEILE=""
+    read -r -p "  Oeffentlicher Schluessel: " ZEILE || break
+    if [[ -z "$ZEILE" ]]; then
+      break
+    fi
+    if [[ "$ZEILE" =~ ^(ssh-|ecdsa-|sk-)[A-Za-z0-9@.-]*[[:space:]] ]]; then
+      install -d -m 0700 -o "$CT_USER" -g "$CT_USER" "$HEIM/.ssh"
+      printf '%s\n' "$ZEILE" >> "$HEIM/.ssh/authorized_keys"
+      chown "$CT_USER:$CT_USER" "$HEIM/.ssh/authorized_keys"
+      chmod 0600 "$HEIM/.ssh/authorized_keys"
+      info "uebernommen ($(wc -l < "$HEIM/.ssh/authorized_keys" | tr -d ' ') Schluessel insgesamt)"
+      info "weiteren Schluessel einfuegen oder mit leerer Eingabe fortfahren"
+    else
+      warn "Das sieht nicht nach einem oeffentlichen Schluessel aus - erwartet wird eine Zeile, die mit ssh-, ecdsa- oder sk- beginnt (die .pub-Datei, nie die private)."
+    fi
+  done
+fi
+
 if [[ -s "$HEIM/.ssh/authorized_keys" ]]; then
   # Erst haerten, wenn ein Schluessel wirklich hinterlegt ist. Sonst waere der
   # Container nur noch ueber 'pct enter' vom Node aus erreichbar.
@@ -118,7 +147,24 @@ CONF
   fi
 else
   warn "kein SSH-Schluessel hinterlegt - Haertung uebersprungen"
-  OFFEN+=("SSH-Schluessel nach $HEIM/.ssh/authorized_keys legen, dann sshd haerten")
+  # Ein fertiges Mac-Kommando kann hier nicht stehen: um vom Arbeitsplatz aus
+  # etwas in den Container zu schreiben, braeuchte es bereits einen Login -
+  # den gibt es ohne Schluessel gerade nicht. Deshalb der kuerzeste Weg von
+  # Hand, mit allem vorausgefuellt, was diese Maschine ueber sich weiss.
+  CT_IP_HINWEIS="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  OFFEN+=("Deinen SSH-Schluessel hinterlegen, damit die Anmeldung als '$CT_USER' klappt.
+
+     Auf dem Arbeitsplatz die oeffentliche Haelfte anzeigen und kopieren:
+         cat ~/.ssh/id_ed25519.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub
+
+     Die ausgegebene Zeile hier im Container statt DEINE_ZEILE einsetzen:
+         install -d -m700 -o $CT_USER -g $CT_USER $HEIM/.ssh && echo 'DEINE_ZEILE' >> $HEIM/.ssh/authorized_keys && chown $CT_USER:$CT_USER $HEIM/.ssh/authorized_keys && chmod 600 $HEIM/.ssh/authorized_keys && echo OK
+
+     Test vom Arbeitsplatz:
+         ssh $CT_USER@${CT_IP_HINWEIS:-<container-ip>}
+
+     Danach die sshd-Haertung nachholen (dieses Skript erneut laufen lassen -
+     es haertet, sobald ein Schluessel liegt).")
 fi
 
 # --------------------------------------------------------------------- Git ---
@@ -173,3 +219,30 @@ for punkt in ${OFFEN[@]+"${OFFEN[@]}"}; do
   printf '  %d) %s\n\n' "$n" "$punkt"
   n=$((n + 1))
 done
+
+# Liegt ein Schluessel, ist der Weg vom Arbeitsplatz frei - dann gleich die
+# fertigen Eintraege mitgeben, statt sie den Leser zusammensuchen zu lassen.
+if [[ -s "$HEIM/.ssh/authorized_keys" ]]; then
+  CT_IP_ANZEIGE="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  cat <<VERBINDUNG
+  ------------------------------------------------------------------
+  Verbindung vom Arbeitsplatz
+
+  In ~/.ssh/config auf dem Arbeitsrechner eintragen:
+
+      Host $(hostname)
+          HostName ${CT_IP_ANZEIGE:-<container-ip>}
+          User $CT_USER
+
+  Testen:      ssh $(hostname)
+  VS Code:     Erweiterung "Remote - SSH" installieren,
+               dann Cmd/Strg+Shift+P -> "Remote-SSH: Connect to Host"
+               -> $(hostname)
+  Wichtig:     die Claude-Erweiterung danach IM Container installieren
+               (Knopf "Install in SSH: $(hostname)" in der
+               Erweiterungsansicht) - eine nur lokal installierte
+               Erweiterung laeuft hier nicht mit.
+  ------------------------------------------------------------------
+
+VERBINDUNG
+fi
