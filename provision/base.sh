@@ -255,6 +255,15 @@ if [[ -s "$HEIM/.ssh/authorized_keys" ]]; then
        Der Knopf existiert nur im verbundenen Fenster aus Schritt 2.
     5. Kontrolle: Claude erscheint im Abschnitt "SSH: $(hostname)".
        Ab jetzt laeuft alles, was Claude tut, in diesem Container.
+
+  Einmalig statt Schritt 3-4, fuer alle kuenftigen Container: auf dem
+  Arbeitsrechner in den VS-Code-Einstellungen unter
+  "Remote.SSH: Default Extensions" den Eintrag
+      anthropic.claude-code
+  ergaenzen - dann installiert VS Code die Erweiterung bei der ersten
+  Verbindung zu jedem Host von selbst. (Das kann kein Skript in diesem
+  Container erledigen: die Erweiterung gehoert in den VS-Code-Server,
+  und den legt erst die erste Verbindung an.)
   ------------------------------------------------------------------
 
 VERBINDUNG
