@@ -228,11 +228,11 @@ if [[ -s "$HEIM/.ssh/authorized_keys" ]]; then
   ------------------------------------------------------------------
   Verbindung vom Arbeitsplatz
 
-  In ~/.ssh/config auf dem Arbeitsrechner eintragen:
+  Diesen Befehl auf dem Arbeitsrechner ins Terminal einfuegen. Er legt
+  ~/.ssh/config an, falls die Datei fehlt, und ergaenzt sonst nur den
+  Eintrag - ein zweiter Aufruf aendert nichts:
 
-      Host $(hostname)
-          HostName ${CT_IP_ANZEIGE:-<container-ip>}
-          User $CT_USER
+      mkdir -p ~/.ssh && chmod 700 ~/.ssh && { grep -qs 'Host $(hostname)' ~/.ssh/config || printf '\nHost $(hostname)\n    HostName ${CT_IP_ANZEIGE:-<container-ip>}\n    User $CT_USER\n' >> ~/.ssh/config; } && chmod 600 ~/.ssh/config && echo OK
 
   Testen:      ssh $(hostname)
   VS Code:     Erweiterung "Remote - SSH" installieren,
