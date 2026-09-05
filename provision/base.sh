@@ -235,13 +235,26 @@ if [[ -s "$HEIM/.ssh/authorized_keys" ]]; then
       mkdir -p ~/.ssh && chmod 700 ~/.ssh && { grep -qs 'Host $(hostname)' ~/.ssh/config || printf '\nHost $(hostname)\n    HostName ${CT_IP_ANZEIGE:-<container-ip>}\n    User $CT_USER\n' >> ~/.ssh/config; } && chmod 600 ~/.ssh/config && echo OK
 
   Testen:      ssh $(hostname)
-  VS Code:     Erweiterung "Remote - SSH" installieren,
-               dann Cmd/Strg+Shift+P -> "Remote-SSH: Connect to Host"
-               -> $(hostname)
-  Wichtig:     die Claude-Erweiterung danach IM Container installieren
-               (Knopf "Install in SSH: $(hostname)" in der
-               Erweiterungsansicht) - eine nur lokal installierte
-               Erweiterung laeuft hier nicht mit.
+
+  VS Code anbinden - bei Remote-Arbeit teilt sich VS Code in die
+  Oberflaeche (Arbeitsrechner) und die Arbeitshaelfte (dieser
+  Container); Erweiterungen, die etwas tun sollen, gehoeren in die
+  Arbeitshaelfte:
+
+    1. Erweiterung "Remote - SSH" (Microsoft) installieren, falls
+       sie fehlt.
+    2. Cmd/Strg+Shift+P -> "Remote-SSH: Connect to Host"
+       -> $(hostname). Im neuen Fenster steht unten links
+       "SSH: $(hostname)" - erst dann weiter.
+    3. In DIESEM Fenster die Erweiterungsansicht oeffnen
+       (Puzzle-Symbol links, oder Cmd/Strg+Shift+X). Die Liste ist
+       jetzt zweigeteilt: "Local - Installed" und
+       "SSH: $(hostname) - Installed".
+    4. Im lokalen Teil die Claude-Erweiterung suchen und auf ihrer
+       Kachel den Knopf "Install in SSH: $(hostname)" druecken.
+       Der Knopf existiert nur im verbundenen Fenster aus Schritt 2.
+    5. Kontrolle: Claude erscheint im Abschnitt "SSH: $(hostname)".
+       Ab jetzt laeuft alles, was Claude tut, in diesem Container.
   ------------------------------------------------------------------
 
 VERBINDUNG
