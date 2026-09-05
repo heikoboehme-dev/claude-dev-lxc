@@ -331,6 +331,19 @@ done
 
 pct exec "$VMID" -- rm -f /root/provision.tar.gz
 
+# ------------------------------------------------------------ Ruecksetzpunkt ---
+# Das Skript laeuft auf dem Node und kann den Snapshot selbst setzen, statt
+# ihn dem Leser aufzutragen - der Schritt wurde in der Praxis sonst vergessen.
+# Nur beim ersten Mal; ein Nachziehlauf ueberschreibt keinen bestehenden Stand.
+if pct listsnapshot "$VMID" 2>/dev/null | grep -q "grundinstallation"; then
+  info "Snapshot 'grundinstallation' besteht bereits - bleibt unveraendert"
+elif pct snapshot "$VMID" grundinstallation >/dev/null 2>&1; then
+  msg "Ruecksetzpunkt gesetzt"
+  info "Snapshot 'grundinstallation' angelegt - zuruecksetzen mit: pct rollback $VMID grundinstallation"
+else
+  warn "Snapshot liess sich nicht anlegen - der Speicher '$STORAGE' unterstuetzt vermutlich keine Snapshots"
+fi
+
 # --------------------------------------------------------------- Abschluss ---
 CT_IP="$(pct exec "$VMID" -- hostname -I 2>/dev/null | awk '{print $1}' || true)"
 [[ -n "$CT_IP" ]] || CT_IP="<IP unbekannt>"
@@ -363,7 +376,8 @@ cat <<ENDE
   Der GitHub-Schluessel des Containers wurde oben ausgegeben - eintragen
   unter Settings → SSH and GPG keys, danach laesst sich klonen.
 
-  Ruecksetzpunkt anlegen, solange alles frisch ist:
-         pct snapshot $VMID grundinstallation
+  Der Snapshot 'grundinstallation' ist gesetzt (siehe oben). Vor
+  riskanten Experimenten einen weiteren anlegen:
+         pct snapshot $VMID vor-experiment
 
 ENDE
