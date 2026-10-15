@@ -245,9 +245,12 @@ else
   msg "Vorlage bereitstellen"
   run_step "Vorlagenliste aktualisieren" pveam update
 
+  # Nur Vorlagen fuer die Architektur dieses Nodes: Die Liste fuehrt auch arm64,
+  # und beim Sortieren stuende die vor amd64 - der Container startet dann nicht.
+  ARCH="$(dpkg --print-architecture)"
   VORLAGE="$(pveam available --section system 2>/dev/null \
-             | awk '{print $2}' | grep -E '^debian-13-standard' | sort -V | tail -1 || true)"
-  [[ -n "$VORLAGE" ]] || die "Keine Debian-13-Vorlage gefunden. 'pveam available --section system' zeigt, was es gibt."
+             | awk '{print $2}' | grep -E "^debian-13-standard_.*_${ARCH}\." | sort -V | tail -1 || true)"
+  [[ -n "$VORLAGE" ]] || die "Keine Debian-13-Vorlage fuer $ARCH gefunden. 'pveam available --section system' zeigt, was es gibt."
 
   if pveam list "$TEMPLATE_STORAGE" 2>/dev/null | awk '{print $1}' | grep -qF "$VORLAGE"; then
     info "Vorlage bereits vorhanden: $VORLAGE"
