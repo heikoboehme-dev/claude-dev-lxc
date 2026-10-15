@@ -76,7 +76,10 @@ if [[ -s /root/.ssh/authorized_keys ]]; then
   install -d -m 0700 -o "$CT_USER" -g "$CT_USER" "$HEIM/.ssh"
   ZIEL="$HEIM/.ssh/authorized_keys"
   TMPKEYS="$(mktemp)"
-  cat /root/.ssh/authorized_keys "$ZIEL" 2>/dev/null | grep -E '^(ssh-|ecdsa-|sk-)' | sort -u > "$TMPKEYS"
+  # Beim ersten Lauf fehlt $ZIEL noch; cat endete dann mit 1 und pipefail brach
+  # das Skript ohne Meldung ab.
+  { cat /root/.ssh/authorized_keys; cat "$ZIEL" 2>/dev/null || true; } \
+    | grep -E '^(ssh-|ecdsa-|sk-)' | sort -u > "$TMPKEYS"
   install -m 0600 -o "$CT_USER" -g "$CT_USER" "$TMPKEYS" "$ZIEL"
   rm -f "$TMPKEYS"
   info "SSH-Schluessel uebernommen ($(wc -l < "$ZIEL" | tr -d ' ') Stueck)"
